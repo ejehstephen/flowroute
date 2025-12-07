@@ -6,6 +6,7 @@ import '../../data/models/community_question_model.dart';
 import '../../data/models/traffic_report_model.dart';
 import '../providers/community_providers.dart';
 import 'package:flowroute/features/auth/presentation/providers/auth_providers.dart';
+import 'package:flowroute/features/profile/presentation/providers/profile_providers.dart';
 
 class AskQuestionScreen extends ConsumerStatefulWidget {
   const AskQuestionScreen({super.key});
@@ -56,9 +57,16 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final user = ref.read(currentUserProvider);
-      final userName = user?.userMetadata?['username'] ?? 'Guest';
+      final user = ref.watch(currentUserProvider);
+      final profile = await ref.read(profileProvider.future);
+
+      print('🔵 User: ${user?.id}');
+      print('🔵 Profile username: ${profile?.username}');
+
+      final userName = profile?.username ?? 'Guest';
       final userId = user?.id;
+
+      print('🔵 Final userName: $userName');
 
       if (_isReport) {
         // Post traffic report

@@ -62,26 +62,50 @@ class CommunityRepository {
   }
 
   Future<void> postReply(CommunityReplyModel reply) async {
+    print('🔵 Posting reply...');
     await _supabase.from('community_replies').insert(reply.toJson());
+    print('✅ Reply posted successfully');
 
     // Increment answer count
     await incrementAnswerCount(reply.questionId);
   }
 
   Future<void> incrementAnswerCount(String questionId) async {
-    // Get current count
-    final question = await _supabase
-        .from('community_questions')
-        .select('answer_count')
-        .eq('id', questionId)
-        .single();
+    print('🔵 Starting incrementAnswerCount for question: $questionId');
 
-    final currentCount = question['answer_count'] ?? 0;
+    try {
+      // Get current count
+      print('🔵 Fetching current answer_count...');
+      final result = await _supabase
+          .from('community_questions')
+          .select('answer_count')
+          .eq('id', questionId)
+          .maybeSingle();
 
-    // Update with incremented count
-    await _supabase
-        .from('community_questions')
-        .update({'answer_count': currentCount + 1})
-        .eq('id', questionId);
+      print('🔵 Query result: $result');
+
+      if (result != null) {
+        final currentCount = (result['answer_count'] as int?) ?? 0;
+        print('🔵 Current count: $currentCount');
+
+        final newCount = currentCount + 1;
+        print('🔵 Updating to new count: $newCount');
+
+        // Update with incremented value
+        final updateResult = await _supabase
+            .from('community_questions')
+            .update({'answer_count': newCount})
+            .eq('id', questionId)
+            .select();
+
+        print('✅ Successfully incremented! Update result: $updateResult');
+      } else {
+        print('❌ Question not found: $questionId');
+      }
+    } catch (e, stackTrace) {
+      print('❌ Error incrementing answer count: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 }

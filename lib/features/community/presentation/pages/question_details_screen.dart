@@ -57,7 +57,6 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      // Use watch instead of read to get current user
       final user = ref.watch(currentUserProvider);
       final profile = await ref.watch(profileProvider.future);
 
@@ -82,7 +81,11 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
 
       await ref.read(communityRepositoryProvider).postReply(reply);
 
-      // Refresh replies
+      // Wait for database to update
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      // Force refresh all providers
+      ref.invalidate(communityQuestionsProvider);
       ref.invalidate(repliesProvider(widget.postId));
       ref.invalidate(communityPostsProvider);
 
@@ -251,120 +254,123 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      Text(
-                        'Replies (${post.replyCount})',
-                        style: GoogleFonts.outfit(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      // Only show replies section for questions
+                      if (!post.isReport) ...[
+                        Text(
+                          'Replies (${post.replyCount})',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Replies List
-                      repliesAsync.when(
-                        data: (replies) {
-                          if (replies.isEmpty) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: Text(
-                                  'No replies yet. Be the first!',
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white54,
+                        const SizedBox(height: 16),
+                        repliesAsync.when(
+                          data: (replies) {
+                            if (replies.isEmpty) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Text(
+                                    'No replies yet. Be the first!',
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white54,
+                                    ),
                                   ),
                                 ),
-                              ),
+                              );
+                            }
+                            return Column(
+                              children: replies
+                                  .map((reply) => ReplyCard(reply: reply))
+                                  .toList(),
                             );
-                          }
-                          return Column(
-                            children: replies
-                                .map((reply) => ReplyCard(reply: reply))
-                                .toList(),
-                          );
-                        },
-                        loading: () => const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(32),
-                            child: CircularProgressIndicator(
-                              color: Colors.blueAccent,
+                          },
+                          loading: () => const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: CircularProgressIndicator(
+                                color: Colors.blueAccent,
+                              ),
+                            ),
+                          ),
+                          error: (error, stack) => Center(
+                            child: Text(
+                              'Error loading replies',
+                              style: GoogleFonts.outfit(color: Colors.red),
                             ),
                           ),
                         ),
-                        error: (error, stack) => Center(
-                          child: Text(
-                            'Error loading replies',
-                            style: GoogleFonts.outfit(color: Colors.red),
-                          ),
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
               ),
-              // Input Bar
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1E1E24),
-                  border: Border(
-                    top: BorderSide(color: Color.fromARGB(26, 99, 98, 98)),
+              // Input Bar - Only show for questions
+              if (!post.isReport)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1E1E24),
+                    border: Border(
+                      top: BorderSide(color: Color.fromARGB(26, 99, 98, 98)),
+                    ),
                   ),
-                ),
-                child: SafeArea(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF121212),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: Colors.white10),
-                          ),
-                          child: TextField(
-                            controller: _replyController,
-                            style: GoogleFonts.outfit(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Add a reply...',
-                              hintStyle: GoogleFonts.outfit(
-                                color: Colors.white38,
-                              ),
-                              border: InputBorder.none,
+                  child: SafeArea(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF121212),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white10),
                             ),
-                            enabled: !_isSubmitting,
+                            child: TextField(
+                              controller: _replyController,
+                              style: GoogleFonts.outfit(color: Colors.white),
+                              decoration: InputDecoration(
+                                hintText: 'Add a reply...',
+                                hintStyle: GoogleFonts.outfit(
+                                  color: Colors.white38,
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              enabled: !_isSubmitting,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF2962FF),
-                          shape: BoxShape.circle,
-                        ),
-                        child: _isSubmitting
-                            ? const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
+                        const SizedBox(width: 12),
+                        Container(
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF2962FF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: _isSubmitting
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
                                   ),
+                                )
+                              : IconButton(
+                                  icon: const Icon(
+                                    Icons.send_rounded,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: _submitReply,
                                 ),
-                              )
-                            : IconButton(
-                                icon: const Icon(
-                                  Icons.send_rounded,
-                                  color: Colors.white,
-                                ),
-                                onPressed: _submitReply,
-                              ),
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           );
         },
