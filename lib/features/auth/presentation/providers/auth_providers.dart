@@ -15,6 +15,11 @@ final currentUserProvider = Provider<User?>((ref) {
   return authState.value?.session?.user;
 });
 
+// Synchronous provider that gets user directly from Supabase
+final syncCurrentUserProvider = Provider<User?>((ref) {
+  return Supabase.instance.client.auth.currentUser;
+});
+
 final isAuthenticatedProvider = Provider<bool>((ref) {
   final user = ref.watch(currentUserProvider);
   return user != null;

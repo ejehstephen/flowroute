@@ -35,6 +35,7 @@ class CommunityQuestionModel {
   Map<String, dynamic> toJson() {
     return {
       'asker_id': askerId,
+      'asker_name': askerName,
       'question_text': questionText,
       'location': location,
       'image_url': imageUrl,

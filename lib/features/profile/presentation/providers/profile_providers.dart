@@ -8,7 +8,7 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 });
 
 final profileProvider = FutureProvider<ProfileModel?>((ref) async {
-  final user = ref.watch(currentUserProvider);
+  final user = ref.watch(syncCurrentUserProvider);
   if (user == null) return null;
 
   return ref.watch(profileRepositoryProvider).getProfile(user.id);

@@ -44,6 +44,7 @@ class TrafficReportModel {
   Map<String, dynamic> toJson() {
     return {
       'reporter_id': reporterId,
+      'reporter_name': reporterName,
       'report_type': reportType,
       'description': description,
       'location': location,
